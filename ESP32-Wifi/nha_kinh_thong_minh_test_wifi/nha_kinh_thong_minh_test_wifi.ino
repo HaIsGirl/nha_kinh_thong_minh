@@ -1,3 +1,12 @@
+#define BLYNK_TEMPLATE_ID "TMPL6toP4AcNm"
+#define BLYNK_TEMPLATE_NAME "Nha kinh"
+#define BLYNK_AUTH_TOKEN "yJPJmSY_6vpxLpkPVrRV8ffydwnn5kAD"
+
+//Khai báo thư viện ESP32 và Wifi
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
 #include<Wire.h> //Thư viện giao tiếp I2C
 #include <DHT.h> //Thư viện cảm biến nhiệt độ
 #include <MQ135.h> //Thư viện cảm biến không khí
@@ -20,6 +29,11 @@ Servo myservo2;
 //Định nghĩa các hàm trong thư viện DHT
 #define doam readHumidity
 #define nhietdo readTemperature
+char auth[] = BLYNK_AUTH_TOKEN;
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "HIEN HA";
+char pass[] = "123456789";
 
 
 //Biến lưu giá trị cảm biến
@@ -37,67 +51,6 @@ void setup(){
   pinMode(LedPin, OUTPUT);
   lcd.init(); //Khởi tạo màn hình lcd
   lcd.backlight(); //Bật đèn nền của lcd
-  dht.begin(); //Khởi tạo Cảm biến nhiệt độ 
-}
-
-
-void loop(){
-  lcd.clear(); //Xóa màn hình lcd
-  Do_am_dat();
-  nhiet_do();
-  Anh_sang();
-}
-
-
-void Anh_sang(){
-  AS = digitalRead(CB_AS);
-  if (AS == 1)
-    digitalWrite(LedPin, HIGH);
-  else 
-    digitalWrite(LedPin, LOW);
-}
-
-void Do_am_dat(){
-  DAD = analogRead(CB_DAD);
-  Serial.println(DAD); //Cảm biến độ ẩm nhận giá trị từ 0 - 1023
-  int phantram = map(DAD, 0,1023, 100,0);
-
-  if (phantram >= 30){
-    digitalWrite(relay, LOW); //Máy bơm OFF
-    Serial.println("Cay du H20");
-  }
-  else {
-    digitalWrite(relay,HIGH); //Máy bơm ON
-    Serial.println("Tuoi H20 cho cay");
-  }
-  lcd.setCursor(0,0); //Đặt vị trí con trỏ ở hàng 1 cột 1
-  lcd.print("Do am: "); //In ra lcd 
- // lcd.setCursor(7,0); //Đặt vị trí con trỏ ở hàng 8 cột 1
-  lcd.print(phantram); //In ra giá trị phần trăm của độ ẩm
-  lcd.print("%");
-  delay(100); //Delay 100ms
-}
-
-void nhiet_do(){
-  DA = dht.doam(); //Đọc độ ẩm không khí
-  doC  = dht.nhietdo(); //Đọc nhiệt độ C
-  doF  = dht.nhietdo(true); //Đọc nhiệt độ F
-
-  //Kiểm tra cảm biến
-  if (isnan(DA) || isnan(doC) || isnan(doF)){
-    Serial.print("LOI DOC GIA TRI DHT11 !!!");
-  }
-  else{
-    if (doC> 35){
-      digitalWrite(Fan, LOW); // FAN ON
-    }
-    else{
-      digitalWrite(Fan, HIGH); // FAN OFF
-    }
-    lcd.setCursor(0,1); //Đặt vị trí con trỏ ở hàng 1 cột 2
-    lcd.print("Nhiet do: ");
- //   lcd.setCursor(10,1);
-    lcd.print(doC);
-    lcd.write(0xDF);          
-  }
+  dht.begin(); //Khởi tạo Cảm biến nhiệt độ
+  blynk.begin(auth,ssid,pass) 
 }

@@ -10,7 +10,7 @@ void loop() {
   if (cb == 1){
     digitalWrite(10, HIGH);
   }
-  else{nb 
+  else{
     digitalWrite(10, LOW);
   }
 }
