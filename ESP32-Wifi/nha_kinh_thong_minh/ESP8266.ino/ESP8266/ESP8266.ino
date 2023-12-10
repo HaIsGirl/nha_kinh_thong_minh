@@ -11,15 +11,15 @@
 
 SerialCommand sCmd;
 
-#define led  D0
+#define led  D1
 #define fan  D2
-#define tuoicay D1
+#define tuoicay D4
 #define phunsuong D3
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-char ssid[] = "HIEN HA";
-char pass[] = "123456789";
+char ssid[] = "ESP8266";
+char pass[] = "kakaaka8lan";
 
 void setup(){
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
@@ -50,9 +50,9 @@ BLYNK_WRITE(V2){
 BLYNK_WRITE(V4){
   int button = param.asInt();
   if (button == 1)
-    digitalWrite(phunsuong, HIGH);
+    digitalWrite(fan, HIGH);
   else 
-    digitalWrite(phunsuong, LOW);
+    digitalWrite(fan, LOW);
 }
 void loop(){
   Blynk.run();
@@ -93,16 +93,18 @@ void phunsuong_off(){
 void DAD(){
   char *arg;
   arg  = sCmd.next();
-
   int Value = atoi(arg);
+  Serial.print("DAD: ");
+  Serial.println(Value);
   Blynk.virtualWrite(V1, Value);
 }
 
 void ND(){
   char *arg;
   arg  = sCmd.next();
-
   int Value = atoi(arg);
+  Serial.print("ND: ");
+  Serial.println(Value);
   Blynk.virtualWrite(V0, Value);
 }
 
