@@ -1,7 +1,7 @@
 #include<DHT.h>
 #define doam readHumidity
 #define nhietdo readTemperature
-const int DHTPIN = 5; //Digital 5
+const int DHTPIN = A2; //Digital 5
 
 const int DHTTYPE = DHT11; //Khai báo cảm biến kiểu DHT11
 

@@ -24,7 +24,7 @@ void setup()
   pinMode(LED_G, OUTPUT);
   pinMode(LED_R, OUTPUT);
   pinMode(RELAY, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
+  pinMode(BUZZER, OUTPUT); 
   digitalWrite(RELAY, LOW);
   Serial.println("Put your card to the reader...");
   Serial.println();
