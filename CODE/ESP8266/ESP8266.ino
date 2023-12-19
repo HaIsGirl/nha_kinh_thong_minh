@@ -1,13 +1,20 @@
-#define BLYNK_PRINT Serial
-
-#define BLYNK_TEMPLATE_ID "TMPL6AXni-pgM"
-#define BLYNK_TEMPLATE_NAME "Nha Kinh Thong Minh"
-#define BLYNK_AUTH_TOKEN "Nbm_pqRyQzNyk_J7M2Ix6gbj-LMQcI7v"
+/*
+                                                           CHƯƠNG TRÌNH ARDUINO UNO R3 - ESP8266 GIAO TIẾP UART 
+                                                                      DỰ ÁN NHÀ KÍNH THÔNG MINH 
+                                                                   CUỘC THI KHOA HỌC KĨ THUẬT 2023
+                                                                        Created by Doan Ha 
+                                                              TRƯỜNG THPT NGUYỄN DU SÔNG HINH PHÚ YÊN
+*/
 
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include <SoftwareSerial.h>  
 #include <SerialCommand.h> // Khai báo biến sử dụng thư viện Serial Command
+#define BLYNK_PRINT Serial
+#define BLYNK_TEMPLATE_ID "TMPL6AXni-pgM"
+#define BLYNK_TEMPLATE_NAME "Nha Kinh Thong Minh"
+#define BLYNK_AUTH_TOKEN "Nbm_pqRyQzNyk_J7M2Ix6gbj-LMQcI7v"
+
 SerialCommand sCmd;
 #define led  D1
 #define fan  D2
