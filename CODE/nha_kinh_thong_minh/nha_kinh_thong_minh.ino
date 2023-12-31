@@ -1,11 +1,10 @@
-/*
-                                                           CHƯƠNG TRÌNH ARDUINO UNO R3 - ESP8266 GIAO TIẾP UART 
-                                                                      DỰ ÁN NHÀ KÍNH THÔNG MINH 
-                                                                   CUỘC THI KHOA HỌC KĨ THUẬT 2023
-                                                                        Created by Doan Ha 
-                                                              TRƯỜNG THPT NGUYỄN DU SÔNG HINH PHÚ YÊN
-*/
-
+/*********************************************************
+  CHƯƠNG TRÌNH ARDUINO UNO R3 - ESP8266 GIAO TIẾP UART   
+            DỰ ÁN NHÀ KÍNH THÔNG MINH 
+          CUỘC THI KHOA HỌC KĨ THUẬT 2023
+              Created by Doan Ha 
+    TRƯỜNG THPT NGUYỄN DU SÔNG HINH PHÚ YÊN
+**********************************************************/
 #include<Wire.h> //Thư viện giao tiếp I2C
 #include <DHT.h> //Thư viện cảm biến nhiệt độ
 #include <MQ135.h> //Thư viện cảm biến không khí
@@ -21,12 +20,11 @@
 #define BUZZER 6 
 #define LED_Y 1
 #define pinServo1 2
-#define pinServo2 4
 #define CB_DAD A0 //Cam bien do am dat
 #define CB_KK  A1 // Cam bien khong khi
-#define CB_AS 7 //Cam bien anh sang 
+#define CB_AS 7//Cam bien anh sang 
 #define CB_ND A2 // Cam bien nhiet do
-#define CB_MUA 8 //Cảm biến mưa
+#define CB_MUA 0 //Cảm biến mưa
 //Định nghĩa các hàm trong thư viện DHT
 #define doam readHumidity
 #define nhietdo readTemperature
@@ -51,7 +49,7 @@ float DA;   //Biến lưu giá trị độ ẩm trong không khí
 int AS;     //Biến lưu giá trị ánh sáng (0 là sáng, 1 là tối)
 float ppm; //Biến lưu giá trị không khí
 byte readCard[4];
-String MasterTag = "FCF7F521";  // REPLACE this Tag ID with your Tag ID!!!
+String MasterTag = "9C8D9D";  // REPLACE this Tag ID with your Tag ID!!!
 String tagID = "";
 int Mua = 0; //biến lưu giá trị CB mưa
 Servo servo1;
@@ -67,13 +65,12 @@ void setup(){
   pinMode(CB_DAD, INPUT); //PIN DAD INPUT
   pinMode(CB_AS, INPUT);
   pinMode(LED_Y, OUTPUT);
+  digitalWrite(LED_G, LOW);
   lcd.init(); //Khởi tạo màn hình lcd
   lcd.backlight();
   dht.begin(); //Khởi tạo Cảm biến nhiệt độ 
   servo1.attach(pinServo1);
-  servo2.attach(pinServo2);
   servo1.write(90);
-  servo2.write(90);
   lcd.setCursor(0,0);
   lcd.println("<<Scan Your Card>>");
 }
@@ -108,6 +105,7 @@ boolean getID()
 }
 
 void LOCK_RFID(){
+  bool Flag = false;
     while (getID()) 
   {    
     if (tagID == MasterTag) 
@@ -115,30 +113,32 @@ void LOCK_RFID(){
       digitalWrite(LED_G, HIGH);
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.println(" Access Granted!");
-      lcd.setCursor(0,1);
-      lcd.print("WELCOME TO GREENHOUSE");
+      lcd.println("   WELCOME TO           ");
+      lcd.setCursor(3,1);
+      lcd.print("GREENHOUSE");
       Serial.println("UNLOCK");
+      Flag = true;
     }
     else
     {
-      digitalWrite(LED_R, HIGH);
       tone(BUZZER, 300);
       lcd.clear();
       lcd.setCursor(0,0);
       lcd.print(" Access Denied!");
+      Flag = 1;
     }
       Serial.print(" ID : ");
       Serial.println(tagID);
-    delay(2000);
-    digitalWrite(LED_G, LOW);
-    digitalWrite(LED_R, LOW);
-    noTone(BUZZER);
-    lcd.setCursor(0,0);
-    lcd.println(" Access Control ");
-    lcd.setCursor(0, 1);
-    lcd.println("<<Scan Your Card>>");
+    if (Flag == 1){
+      delay(1000);
+      noTone(BUZZER);
+      lcd.setCursor(0,0);
+      lcd.println(" Access Control ");
+      lcd.setCursor(0, 1);
+      lcd.println("<<Scan Your Card>>");
+    }
   }
+
 }
 void Anh_sang(){
   AS = digitalRead(CB_AS);
@@ -150,7 +150,7 @@ void Anh_sang(){
     Serial.println("LEDOFF");
     digitalWrite(LED_Y, LOW);
   }
-  delay(500);  
+  delay(200);  
 }
 
 void Do_am_dat(){
@@ -159,7 +159,6 @@ void Do_am_dat(){
 
   if (phantram <= 15 && Mua == 0){
     Serial.println("TUOICAY");
-    digitalWrite(LED_Y,HIGH);
   }
   else {
     Serial.println("KHONGTUOI");
@@ -168,7 +167,7 @@ void Do_am_dat(){
   adat = adat + "DAD " + phantram;
   Serial.println(adat);
   adat = "";
-  delay(500); //Delay 500ms
+  delay(200); //Delay 200ms
 }
 
 void nhiet_do(){
@@ -191,13 +190,13 @@ void nhiet_do(){
   ndo = ndo + "ND " + doC;
   Serial.println(ndo);
   ndo = "";
-  delay(500);
+  delay(200);
 }
 
 void CBKK(){
   ppm = KK.getPPM();
   if (ppm >= 100){
-    tone(BUZZER, 300, 5000);
+    tone(BUZZER, 300);
     Serial.println("FANON");
     digitalWrite(LED_Y,HIGH);
     noTone(BUZZER);
@@ -209,11 +208,13 @@ void CBKK(){
   khidoc = khidoc + "KK " + ppm;
   Serial.println(khidoc);
   khidoc = "";
-  delay(500); 
+  delay(200); 
 }
 
 void CB_Mua(){
   Mua = digitalRead(CB_MUA);
+  Serial.print("Mua: ");
+  Serial.println(CB_MUA);
   if (Mua == 1 && DAD < 15){
     servo1.write(200);
     delay(1000);
