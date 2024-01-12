@@ -1,11 +1,11 @@
-#include<DHT.h>
+#include<DHT20.h>
 #define doam readHumidity
 #define nhietdo readTemperature
 const int DHTPIN = A2; //Digital 5
 
 const int DHTTYPE = DHT11; //Khai báo cảm biến kiểu DHT11
 
-DHT dht(DHTPIN, DHTTYPE); //Khai báo thư viện chân cảm biến và kiểu cảm biến
+DHT dht(DHTPIN, DHTYPE); //Khai báo thư viện chân cảm biến và kiểu cảm biến
 
 void setup(){
   Serial.begin(9600);

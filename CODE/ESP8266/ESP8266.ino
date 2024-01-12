@@ -1,148 +1,204 @@
+
+/*************************************************************
+  Download latest ERa library here:
+    https://github.com/eoh-jsc/era-lib/releases/latest
+    https://www.arduino.cc/reference/en/libraries/era
+    https://registry.platformio.org/libraries/eoh-ltd/ERa/installation
+
+    ERa website:                https://e-ra.io
+    ERa blog:                   https://iotasia.org
+    ERa forum:                  https://forum.eoh.io
+    Follow us:                  https://www.fb.com/EoHPlatform
+ *************************************************************/
+
+// Enable debug console
+// Set CORE_DEBUG_LEVEL = 3 first
+//#define ERA_DEBUG
+
 /*
-                                                           CHƯƠNG TRÌNH ARDUINO UNO R3 - ESP8266 GIAO TIẾP UART 
-                                                                      DỰ ÁN NHÀ KÍNH THÔNG MINH 
-                                                                   CUỘC THI KHOA HỌC KĨ THUẬT 2023
-                                                                        Created by Doan Ha 
-                                                              TRƯỜNG THPT NGUYỄN DU SÔNG HINH PHÚ YÊN
-*/
+RFID:  
+• 3.3v = 3.3v 
+• RST = D3  
+• GND = GND 
+• IRQ = Not Used 
+• MISO = D6 
+• MOSI = D7 
+• SCK = D5 
+• SDA = D4
+*/ 
+#define DEFAULT_MQTT_HOST "mqtt1.eoh.io"
 
-#include <ESP8266WiFi.h>
-#include <BlynkSimpleEsp8266.h>
+// You should get Auth Token in the ERa App or ERa Dashboard
+#define ERA_AUTH_TOKEN "226afa54-cab0-4b3a-9eea-2e2ac5b0a027"
+
+#include <SPI.h>
+#include <MFRC522.h>
+#include<SerialCommand.h>
 #include <SoftwareSerial.h>  
-#include <SerialCommand.h> // Khai báo biến sử dụng thư viện Serial Command
-#define BLYNK_PRINT Serial
-#define BLYNK_TEMPLATE_ID "TMPL6AXni-pgM"
-#define BLYNK_TEMPLATE_NAME "Nha Kinh Thong Minh"
-#define BLYNK_AUTH_TOKEN "Nbm_pqRyQzNyk_J7M2Ix6gbj-LMQcI7v"
+#include <ESP8266WiFi.h>
+#include <ERa.hpp>
+#include <ERa/ERaTimer.hpp>
+const char ssid[] = "ESP8266";
+const char pass[] = "kakaaka8lan";
 
-SerialCommand sCmd;
-#define led  D1
-#define fan  D2
-#define tuoicay D4
-#define phunsuong D3
-#define lock D5
-// Your WiFi credentials.
-// Set password to "" for open networks.
-char ssid[] = "ESP8266";
-char pass[] = "kakaaka8lan";
-bool flag_fan = 0;
-bool flag_light = 0;
-void setup(){
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-  Serial.begin(9600);
-  pinMode(led, OUTPUT);
-  pinMode(tuoicay, OUTPUT);
-  pinMode(fan, OUTPUT);
-  pinMode(phunsuong, OUTPUT);
-  pinMode(lock, OUTPUT);
-  sCmd.addCommand("LEDON", led_on);
-  sCmd.addCommand("LEDOFF", led_off);
-  sCmd.addCommand("TUOICAY", tuoicay_on);
-  sCmd.addCommand("KHONGTUOI", tuoicay_off);
-  sCmd.addCommand("FANON", fan_on);
-  sCmd.addCommand("FANOFF", fan_off);
-  sCmd.addCommand("DAD", DAD);
-  sCmd.addCommand("ND", ND);
-  sCmd.addCommand("PHUN", phunsuong_on);
-  sCmd.addCommand("KHONGPHUN", phunsuong_off);
-  sCmd.addCommand("KK", KK);
-  sCmd.addCommand("UNLOCK", unlock);
+SerialCommand cmd;
+
+ERaTimer timer;
+
+/* This function print uptime every second */
+String led = "";
+String fan = "";
+String tuoicay = "";
+String phunsuong = "";
+String automode = "";
+String nocnha =  "";
+
+#define SS_PIN D4
+#define RST_PIN D3
+#define LED_G D1 //define green LED pin
+#define LED_R D2 //define red LED
+#define BUZZER D8 //buzzer pin
+#define ACCESS_DELAY 2000
+#define DENIED_DELAY 1000
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
+void setup() {
+    /* Setup debug console */
+    Serial.begin(9600);
+    SPI.begin();          // Initiate  SPI bus
+    mfrc522.PCD_Init();   // Initiate MFRC522
+    pinMode(LED_G, OUTPUT);
+    pinMode(LED_R, OUTPUT);
+    pinMode(BUZZER, OUTPUT);
+    noTone(BUZZER);
+    ERa.begin(ssid, pass);
+    ERa.virtualWrite(V4, 1);
+    /* Setup timer called function every second */
+    cmd.addCommand("DAD",doamdat);
+    cmd.addCommand("ND", nhietdo);
+    cmd.addCommand("KK", khongkhi);
+    cmd.addCommand("doam", doam);
 }
-BLYNK_WRITE(V2){
-  int button = param.asInt();
-  if (button == 1){
-    flag_light = 1;
-    digitalWrite(led, HIGH);
+
+ERA_WRITE(V0){
+  int value = param.getInt();
+  led = led + "led " + value;
+  Serial.println(led);
+  led = "";
+  ERa.virtualWrite(V0, value);
+}
+
+ERA_WRITE(V1){
+  int value = param.getInt();
+  fan = fan + "fan " + value;
+  Serial.println(fan);
+  fan = "";
+  ERa.virtualWrite(V1, value);
+}
+
+ERA_WRITE(V2){
+  int value = param.getInt();
+  tuoicay = tuoicay + "tuoicay " + value;
+  Serial.println(tuoicay);
+  tuoicay = "";
+  ERa.virtualWrite(V2, value);
+}
+
+ERA_WRITE(V3){
+  int value = param.getInt();
+  phunsuong = phunsuong + "phunsuong " + value;
+  Serial.println(phunsuong);
+  phunsuong = "";
+  ERa.virtualWrite(V3, value);
+}
+
+ERA_WRITE(V4){
+    int value = param.getInt();
+    automode = automode + "automode " + value;
+    Serial.println(automode);
+    automode = "";
+    ERa.virtualWrite(V4, value);
+}
+
+ERA_WRITE(V5){
+  int value = param.getInt();
+  nocnha = nocnha + "nocnha " + value; 
+  Serial.println(nocnha);
+  nocnha = "";
+  ERa.virtualWrite(V5, value);
+}
+void loop() {
+    ERa.run();
+    cmd.readSerial();
+      // Look for new cards
+  if ( ! mfrc522.PICC_IsNewCardPresent()) 
+  {
+    return;
   }
-  else{
-    digitalWrite(led, LOW);
-    flag_light = 0;
+  // Select one of the cards
+  if ( ! mfrc522.PICC_ReadCardSerial()) 
+  {
+    return;
+  }
+  //Show UID on serial monitor
+  Serial.print("UID tag :");
+  String content= "";
+  int letter;
+  for (int i = 0; i < mfrc522.uid.size; i++) 
+  {
+     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+     Serial.print(mfrc522.uid.uidByte[i], HEX);
+     content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+     content.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+  Serial.println();
+  Serial.print("Message : ");
+  content.toUpperCase();
+  if (content.substring(1) == "09 0C 8D 9D") //change here the UID of the card/cards that you want to give access
+  {
+    Serial.println("Authorized access");
+    Serial.println();
+    delay(500);
+    digitalWrite(LED_G, HIGH);
+    delay(ACCESS_DELAY);
+    digitalWrite(LED_G, LOW);
+    Serial.println("lock 1");
+  }
+ 
+ else   {
+    Serial.println(" Access denied");
+    digitalWrite(LED_R, HIGH);
+    tone(BUZZER, 1000);
+    delay(DENIED_DELAY);
+    digitalWrite(LED_R, LOW);
+    noTone(BUZZER);
+    Serial.println("lock 0");
   }
 }
-BLYNK_WRITE(V4){
-  int button = param.asInt();
-  if (button == 1){
-    flag_fan = 1;
-    digitalWrite(fan, HIGH);
-  }
-  else{ 
-    digitalWrite(fan, LOW);
-    flag_fan = 0;
-  }
-}
-void loop(){
-  Blynk.run();
-  sCmd.readSerial();
-}
-void led_on(){
-    Serial.println("LED ON");
-    digitalWrite(led,HIGH);
-}
 
-void led_off(){
-  if (flag_light == 0)
-    digitalWrite(led, LOW);
-  Serial.println("LED OFF");
-}
-
-void fan_on(){
-  Serial.println("FAN ON");
-    digitalWrite(fan, HIGH);
-}
-
-void fan_off(){
-  if (flag_fan == 0)
-    digitalWrite(fan, LOW);
-  Serial.println("FAN OFF");
-}
-
-void tuoicay_on(){
-  Serial.println("TUOI CAY");
-  digitalWrite(tuoicay, HIGH);
-}
-
-void tuoicay_off(){
-  Serial.println("Cay du nuoc");
-  digitalWrite(tuoicay, LOW);
-}
-
-void phunsuong_on(){
-  Serial.println("Phun suong");
-  digitalWrite(phunsuong, HIGH);
-}
-
-void phunsuong_off(){
-  Serial.println("Tat phun suong");
-  digitalWrite(phunsuong, LOW);
-}
-
-void DAD(){
+void khongkhi(){
   char *arg;
-  arg  = sCmd.next();
+  arg  = cmd.next();
   int Value = atoi(arg);
-  Serial.print("DAD: ");
-  Serial.println(Value);
-  Blynk.virtualWrite(V1, Value);
+  ERa.virtualWrite(V9, Value);
 }
 
-void ND(){
+void doamdat(){
   char *arg;
-  arg  = sCmd.next();
-  int Value = atoi(arg);
-  Serial.print("ND: ");
-  Serial.println(Value);
-  Blynk.virtualWrite(V0, Value);
+  arg  = cmd.next();
+  int Value = atoai(arg);
+  ERa.virtualWrite(V8, Value);
 }
 
-void KK(){
+void doam(){
   char *arg;
-  arg  = sCmd.next();
+  arg  = cmd.next();
   int Value = atoi(arg);
-  Blynk.virtualWrite(V3, Value);
+  ERa.virtualWrite(V7, Value);
 }
 
-void unlock(){
-  digitalWrite(lock, HIGH);
-  delay(500);
-  digitalWrite(lock, LOW);
+void nhietdo(){
+  char *arg;
+  arg  = cmd.next();
+  int Value = atoi(arg);
+  ERa.virtualWrite(V6, Value);
 }

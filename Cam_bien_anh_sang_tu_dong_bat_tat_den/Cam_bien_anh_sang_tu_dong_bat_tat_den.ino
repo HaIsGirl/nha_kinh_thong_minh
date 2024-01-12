@@ -1,16 +1,13 @@
-void setup() {
-  pinMode(8,INPUT);
-  pinMode(10,OUTPUT);
+void setup(){
+  pinMode(13, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(A1, OUTPUT);
   Serial.begin(9600);
 }
 
-void loop() {
-  int cb = digitalRead(8);
-  Serial.println(cb);
-  if (cb == 1){
-    digitalWrite(10, HIGH);
-  }
-  else{
-    digitalWrite(10, LOW);
-  }
+void loop(){
+    digitalWrite(13, HIGH);
+    delay(2000);
+    digitalWrite(13,LOW);
+    delay(2000);
 }

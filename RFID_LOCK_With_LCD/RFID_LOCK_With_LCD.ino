@@ -1,17 +1,16 @@
 //Viral Science www.youtube.com/c/viralscience
 //RFID Solenoid Lock
-
 #include <SPI.h>
 #include <MFRC522.h>
- 
+
 #define SS_PIN 10
 #define RST_PIN 9
 #define LED_G 5 //define green LED pin
 #define LED_R 4 //define red LED
-#define RELAY 3 //relay pin
-#define BUZZER 6 
+#define RELAY 6 //relay pin
+#define BUZZER 2 
 //#define BUZZER 2 //buzzer pin
-#define ACCESS_DELAY 2000
+#define ACCESS_DELAY 2000 
 #define DENIED_DELAY 1000
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 int ID1[4] = {9, 12, 141, 157};
@@ -24,11 +23,11 @@ void setup()
   pinMode(LED_G, OUTPUT);
   pinMode(LED_R, OUTPUT);
   pinMode(RELAY, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
   pinMode(BUZZER, OUTPUT); 
   digitalWrite(RELAY, LOW);
   Serial.println("Put your card to the reader...");
   Serial.println();
-
 }
 void loop() 
 {
@@ -51,9 +50,7 @@ void loop()
     UID[i] = mfrc522.uid.uidByte[i];
     Serial.print(UID[i]);
   }
-
   Serial.println("   ");
-
   if (UID[i] == ID1[i])
   {
     Serial.println("Authorized access");    
