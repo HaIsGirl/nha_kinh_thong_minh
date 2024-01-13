@@ -1,8 +1,9 @@
 /*********************************************************
   CHƯƠNG TRÌNH ARDUINO UNO R3 - ESP8266 GIAO TIẾP UART   
             DỰ ÁN NHÀ KÍNH THỦY SINH
-          CUỘC THI KHOA HỌC KĨ THUẬT 2023
-              Created by Doan Ha 
+  KHOA HỌC KĨ THUẬT DÀNH CHO CẤP TRUNG HỌC TỈNH PHÚ YÊN 
+                  NĂM HỌC 2023 - 2024
+                  Created by Doan Ha 
 **********************************************************/
 #include<Wire.h> //Thư viện giao tiếp I2C
 #include <DFRobot_DHT20.h>
@@ -12,7 +13,7 @@
 #include<MFRC522.h> //Thư viện điều khiển RFID 522
 #include<SPI.h> //Thư viện giao tiếp SPI
 #include<SerialCommand.h>
-//Chân digital đã sử dụng: 0,1,2,3,4,5,6,7,8,9,10,11,12,13
+//Chân digital đã sử dụng: 0,1,2,3,4,5,6,7,8,10,11,12
 //Chân analog đã sử dụng: A0,A1,A2,A3
 SerialCommand cmd;
 //Công tắc hành trình
@@ -26,7 +27,7 @@ SerialCommand cmd;
 #define fan 8
 #define led 11
 #define phunsuong 12
-#define lock 13
+#define lock 10
 //Cảm biến 
 #define CB_DAD A0 //Cam bien do am dat
 #define CB_KK  A1 // Cam bien khong khi
@@ -59,27 +60,26 @@ float ppm; //Biến lưu giá trị không khí
 int  MUA; //Biến lưu giá trị mưa
 int phantram; //Biến lưu giá trị phầm trăm độ ẩm đất🐧
 //Biến lưu giá trị hiệu chỉnh
-float MDAD = 30;
+float MDAD = 15;
 float MND = 30;
-
+float MKK = 150;
+float MAS = 50;
 //Cờ hiệu
 bool flag_led = 0;
 bool flag_fan = 0;
 bool flag_tuoicay = 0;
 bool flag_phunsuong = 0;
 bool flag_automode = 1;
-bool flag_nocnha =0 ;
+bool flag_nocnha = 0 ;
 //MFRC522 mfrc522(SS_PIN, RST_PIN);  //kHAI BAO RFID
 byte readCard[4];
 String MasterTag = "9C8D9D";  // REPLACE this Tag ID with your Tag ID!!!
 String tagID = "";
-int Mua = 0; //biến lưu giá trị CB mưa
 void setup(){
-  Serial.begin(9600); //Khởi tạo giao tiếp Serial baund 115200
+  Serial.begin(115200); //Khởi tạo giao tiếp Serial baund 115200
   Wire.begin();
   pinMode(congtac1, INPUT_PULLUP);
   pinMode(congtac2, INPUT_PULLUP);
-  pinMode(CB_MUA,OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
   pinMode(CB_DAD, INPUT);
@@ -89,6 +89,7 @@ void setup(){
   pinMode(led, OUTPUT);
   pinMode(tuoicay, OUTPUT);
   pinMode(phunsuong, OUTPUT);
+  pinMode(lock, OUTPUT);
   lcd.init(); //Khởi tạo màn hình lcd
   lcd.backlight();
   dht.begin(); //Khởi tạo Cảm biến nhiệt độ 
@@ -99,6 +100,10 @@ void setup(){
   cmd.addCommand("automode", AUTOMODE);
   cmd.addCommand("nocnha", NOCNHA);
   cmd.addCommand("lock", LOCK);
+  cmd.addCommand("MDAD", MUCDAD);
+  cmd.addCommand("MND", MUCND);
+  cmd.addCommand("MKK", MUCKK);
+  cmd.addCommand("MAS", MUCAS);
 }
 
 void loop(){
@@ -110,7 +115,35 @@ void loop(){
   nhiet_do();
   Anh_sang();
   CBKK();
+  CBM();
 }  
+
+
+//Hiệu chỉnh đo 
+void MUCDAD(){
+  char *arg;
+  arg = cmd.next();
+  MDAD = atoi(arg);   
+}
+
+void MUCND(){
+  char *arg;
+  arg = cmd.next();
+  MDAD = atoi(arg);
+}
+
+void MUCKK(){
+  char *arg;
+  arg = cmd.next();
+  MKK = atoi(arg);
+}
+
+void MUCAS(){
+  char *arg;
+  arg = cmd.next();
+  MAS = atoi(arg);
+}
+
 
 //Chức năng ERA
 void LED(){
@@ -186,20 +219,16 @@ void NOCNHA(){
   int Value = atoi(arg);
   if (Value == 1){
     flag_nocnha = 1;
-    digitalWrite(in1, HIGH);
-    digitalWrite(in2, LOW);
-    if (congtac2 == 1){
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, LOW);
+    Serial.println("mo noc");
+    if (congtac2 == 1){ 
+      Serial.println("dung motor")q
     }   
   }
   if (Value == 0){
     flag_nocnha = 0; 
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, HIGH);
+    Serial.println("dong noc");
     if (congtac1 == 1){
-      digitalWrite(in1, LOW);
-      digitalWrite(in2, LOW);
+      Serial.println("dung motor");
     }
   }
 }
@@ -215,26 +244,26 @@ void Anh_sang(){
   asang = "";
   if (flag_automode == 1){
     if (flag_led == 0){
-    if (AS < 30){
+    if (AS < MAS){
       digitalWrite(led, HIGH);
     }
     else if (AS>30){
       digitalWrite(led, LOW);
      }
     }
-  }
-  delay(50);  
+  }  
 }           
 
 void Do_am_dat(){
   DAD = analogRead(CB_DAD);
+  MUA = digitalRead(CB_MUA);
   phantram = map(DAD, 0,1024,0,100);
   adat = adat + "DAD " + phantram;
   Serial.println(adat);
   adat = "";
   if (flag_automode == 1){
     if (flag_tuoicay == 0){
-     if (phantram <= 15 && Mua == 0){
+     if (phantram <= MDAD && MUA == 1){
       Serial.println("TUOICAY");
       digitalWrite(tuoicay,HIGH);
     }
@@ -244,7 +273,6 @@ void Do_am_dat(){
     }
     }
   }
-  delay(50); //Delay 50ms
 }
 
 void nhiet_do(){
@@ -262,7 +290,7 @@ void nhiet_do(){
   else{
     if (flag_automode == 1){
       if (flag_phunsuong == 0){
-       if (doC > 35){
+       if (doC > MND){
         Serial.println("PHUN");
         digitalWrite(phunsuong, HIGH); 
        }
@@ -272,7 +300,6 @@ void nhiet_do(){
         }
       }
   }
-  delay(50);
   }
 }
 
@@ -283,7 +310,7 @@ void CBKK(){
   khidoc = "";
   if (flag_automode == 1){
     if (flag_fan == 0){
-     if (ppm >= 150){
+     if (ppm >= MKK){
     //   tone(BUZZER, 300);
        Serial.println("FANON");
       digitalWrite(fan,HIGH);
@@ -293,18 +320,20 @@ void CBKK(){
       digitalWrite(fan,LOW);
     }
     }
-  }
-  delay(50); 
+  } 
 }
 
 void CBM(){
   MUA = digitalRead(CB_MUA);
+  DAD = digitalRead(CB_DAD);
+  int ct1 = digitalRead(congtac1);
+  int ct2 = digitalRead(congtac2);
   if (flag_automode == 1){
     if (flag_nocnha == 0){
-      if (MUA == 0 && phantram < 30){
+      if (MUA == 0 && phantram < MDAD){
         digitalWrite(in1, HIGH);
         digitalWrite(in2, LOW);
-        if (congtac2 == 1){
+        if (ct1 == 0){
           digitalWrite(in1, LOW);
           digitalWrite(in2, LOW);
         }
@@ -312,7 +341,7 @@ void CBM(){
       else{
         digitalWrite(in1, LOW);
         digitalWrite(in2, HIGH);
-        if (congtac1 == 1){
+        if (ct2 == 0){
           digitalWrite(in1, LOW);
           digitalWrite(in2, LOW);
         }
@@ -336,12 +365,14 @@ void LOCK(){
       lcd.setCursor(3,1);
       lcd.print("GREENHOUSE");
       delay(3000);
-      digitalwrite(lock, LOW);
+      digitalWrite(lock, LOW);
+      lcd.clear();
   }
   else{
       lcd.clear();
       lcd.setCursor(0,0);
       lcd.print(" Access Denied!");
       delay(3000);
+      lcd.clear();
   }
 }

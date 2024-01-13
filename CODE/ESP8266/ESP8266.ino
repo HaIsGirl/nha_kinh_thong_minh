@@ -52,7 +52,10 @@ String tuoicay = "";
 String phunsuong = "";
 String automode = "";
 String nocnha =  "";
-
+String mucnd = "";
+String mucdad = "";
+String muckk = "";
+String mucas = "";
 #define SS_PIN D4
 #define RST_PIN D3
 #define LED_G D1 //define green LED pin
@@ -63,7 +66,7 @@ String nocnha =  "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 void setup() {
     /* Setup debug console */
-    Serial.begin(9600);
+    Serial.begin(115200);
     SPI.begin();          // Initiate  SPI bus
     mfrc522.PCD_Init();   // Initiate MFRC522
     pinMode(LED_G, OUTPUT);
@@ -72,11 +75,18 @@ void setup() {
     noTone(BUZZER);
     ERa.begin(ssid, pass);
     ERa.virtualWrite(V4, 1);
+    ERa.virtualWrite(V11, 15);
+    ERa.virtualWrite(V12, 35);
+    ERa.virtualWrite(V13, 150);
+    ERa.virtualWrite(V14, 50);
     /* Setup timer called function every second */
     cmd.addCommand("DAD",doamdat);
     cmd.addCommand("ND", nhietdo);
     cmd.addCommand("KK", khongkhi);
     cmd.addCommand("doam", doam);
+    cmd.addCommand("mo noc", OPENNOC);
+    cmd.addCommand("dongnoc", CLOSENOC);
+    cmd.addCommand("dung motor", STOPMOTOR);
 }
 
 ERA_WRITE(V0){
@@ -126,6 +136,33 @@ ERA_WRITE(V5){
   nocnha = "";
   ERa.virtualWrite(V5, value);
 }
+ERA_WRITE(V11){
+  int value = param.getInt();
+  mucdad = mucdad + "MDAD " + value;
+  Serial.println(mucdad);
+  mucdad = "";
+  ERa.virtualWrite(V11, value);  
+}
+
+ERA_WRITE(V12){
+  int value = param.getInt();
+  mucnd = mucnd + "MND " + value;
+  mucnd = "";
+  ERa.virtualWrite(V12, value);
+}
+
+ERA_WRITE(V13){
+  int value = param.getInt();
+  muckk = "";
+  ERa.virtualWrite(V13, value);
+}
+
+ERA_WRITE(V14){
+  int value = param.getInt();
+  mucas = mucas +"MAS " + value;
+  mucas = "";
+  ERa.virtualWrite(V14, value);
+}
 void loop() {
     ERa.run();
     cmd.readSerial();
@@ -151,27 +188,26 @@ void loop() {
      content.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   Serial.println();
-  Serial.print("Message : ");
   content.toUpperCase();
   if (content.substring(1) == "09 0C 8D 9D") //change here the UID of the card/cards that you want to give access
   {
+    Serial.println("lock 1");
     Serial.println("Authorized access");
     Serial.println();
-    delay(500);
     digitalWrite(LED_G, HIGH);
     delay(ACCESS_DELAY);
     digitalWrite(LED_G, LOW);
-    Serial.println("lock 1");
+    
   }
  
  else   {
+    Serial.println("lock 0");
     Serial.println(" Access denied");
     digitalWrite(LED_R, HIGH);
     tone(BUZZER, 1000);
     delay(DENIED_DELAY);
     digitalWrite(LED_R, LOW);
     noTone(BUZZER);
-    Serial.println("lock 0");
   }
 }
 
@@ -185,7 +221,7 @@ void khongkhi(){
 void doamdat(){
   char *arg;
   arg  = cmd.next();
-  int Value = atoai(arg);
+  int Value = atoi(arg);
   ERa.virtualWrite(V8, Value);
 }
 
